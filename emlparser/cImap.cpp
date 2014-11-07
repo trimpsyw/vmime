@@ -155,13 +155,13 @@ void cImap::SelectFolder(const wstring s_Path)
             return; // already selected
 
         Connect();
-
+		
         if (s_Path.find('\\') != string::npos)
             throw exception("Please use slashes instead of backslashes in folder paths!");
 
         utility::path i_Path = utility::path::fromString('/', UTF(s_Path));
         ref<net::folder> i_NewFolder = mi_Store->getFolder(i_Path);
-
+		
         i_NewFolder->open(net::folder::MODE_READ_WRITE); // this creates a new connection to the server
 
         if (mi_Folder)
@@ -221,10 +221,10 @@ string	cImap::GetUid(int s32_Index)
 
 		return i_Msg->getUID().operator vmime::string();
 	}
-    catch (...)
-    {
+	catch (...)
+	{
         // http://stackoverflow.com/questions/21346400/destructors-not-executed-no-stack-unwinding-when-exception-is-thrown
-        throw; 
+		throw; 
     }
 }
 

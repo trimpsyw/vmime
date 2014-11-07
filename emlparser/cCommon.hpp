@@ -70,6 +70,7 @@ public:
 private:
     time_t m_LastUnix;
     time_t m_Interval;
+	int m_Try;
 };
 
 

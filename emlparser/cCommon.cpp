@@ -153,7 +153,8 @@ void TraceProgress::stop(const long total)
 
 TimeoutHandler::TimeoutHandler()
 {
-    m_Interval = TRANSFER_TIMEOUT;
+    m_Interval = TRANSFER_TIMEOUT*2;
+	m_Try = 0;
 }
 
 void TimeoutHandler::ModifyInterval(int s32_Timeout) // Seconds
@@ -164,6 +165,7 @@ void TimeoutHandler::ModifyInterval(int s32_Timeout) // Seconds
 void TimeoutHandler::resetTimeOut()
 {
     m_LastUnix = ::time(NULL);
+	m_Try = 0;
 }
 
 bool TimeoutHandler::isTimeOut()
@@ -173,7 +175,17 @@ bool TimeoutHandler::isTimeOut()
 
 bool TimeoutHandler::handleTimeOut()
 {
-    return false;
+#if 1
+	//return false;
+	resetTimeOut();
+	return true;
+#else
+	if(++m_Try < 3)
+		return false;
+
+	resetTimeOut();
+	return true;
+#endif
 }
 
 

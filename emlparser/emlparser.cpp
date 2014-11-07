@@ -20,6 +20,12 @@ using std::vector;
 #define TOW(str)      wstring((const wchar_t*)str.c_str(), str.length()/2)
 
 
+
+void SetTraceCallback(void (*tTraceCallback)(const char* s8_Trace))
+{
+	vmime::SetTraceCallback(tTraceCallback);
+}
+
 class EMLParserImpl
 {
 public:
@@ -186,7 +192,7 @@ string	EMLParser::GetBody(bool plaintext)
 				try{
 					return charset::WstringToUtf8(charset::CpToWstring(s_Text, i_Html.getCharset()));
 				}catch(...){
-					printf("caught exception unknown %s\n", i_Html.getCharset().getName().c_str());
+					vmime::Trace("caught exception unknown %s\n", i_Html.getCharset().getName().c_str());
 					return s_Text;
 				}
 			}
@@ -200,7 +206,7 @@ string	EMLParser::GetBody(bool plaintext)
 				try{
 					return charset::WstringToUtf8(charset::CpToWstring(s_Text, i_Plain.getCharset()));
 				}catch(...){
-					printf("caught exception unknown %s\n", i_Plain.getCharset().getName().c_str());
+					vmime::Trace("caught exception unknown %s\n", i_Plain.getCharset().getName().c_str());
 					return s_Text;
 				}
 			}
@@ -217,7 +223,7 @@ string	EMLParser::GetBody(bool plaintext)
 	try{
 		return charset::WstringToUtf8(charset::CpToWstring(s_Text, i_Html->getCharset())); 
 	}catch(...){
-		printf("caught exception unknown %s\n", i_Html->getCharset().getName().c_str());
+		vmime::Trace("caught exception unknown %s\n", i_Html->getCharset().getName().c_str());
 		return s_Text;
 	}
 }
@@ -307,6 +313,32 @@ Pop3Reader::~Pop3Reader()
 	delete impl;
 }
 
+int Pop3Reader::SelectFolder(const std::string& path)
+{
+	try
+	{
+		impl->SelectFolder(UNI(path));
+		return 0;
+	}
+	catch (std::exception& e)
+	{
+		vmime::Trace("select: %s\n", e.what());
+		return -1;
+	}
+}
+	
+int Pop3Reader::GetAllFolders(std::vector<std::string> & folders)
+{
+	std::vector<std::wstring> wfolders;
+	impl->EnumFolders(wfolders);
+
+	for(int i = 0; i < wfolders.size(); i++)
+		folders.push_back(UTF(wfolders[i]));
+
+	return wfolders.size();
+}
+
+
 
 int Pop3Reader::Connect(const std::string& username, const std::string& password)
 {
@@ -318,7 +350,7 @@ int Pop3Reader::Connect(const std::string& username, const std::string& password
 	}
 	catch (std::exception& e)
 	{
-		printf("connect: %s\n", e.what());
+		vmime::Trace("connect: %s\n", e.what());
 		return -1;
 	}
 }
@@ -358,7 +390,7 @@ void Pop3Reader::Close()
 	}
 	catch (std::exception& e)
 	{
-		printf("close: %s\n", e.what());
+		vmime::Trace("close: %s\n", e.what());
 	}
 }
 
@@ -402,17 +434,86 @@ ImapReader::~ImapReader()
 
 int ImapReader::Connect(const std::string& username, const std::string& password)
 {
-	try
+	int ntry = 0;
+	do
 	{
-		impl->SetAuthData(UNI(username).c_str(), UNI(password).c_str());
-		impl->Connect();
-		return 0;
-	}
-	catch (std::exception& e)
+		try
+		{
+			impl->SetAuthData(UNI(username).c_str(), UNI(password).c_str());
+			impl->Connect();
+			return 0;
+		}
+		catch (exceptions::operation_timed_out& e)
+		{
+			vmime::Trace("Timeout Connect %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return -2;
+		}
+		catch(exceptions::authentication_error& e)
+		{
+			vmime::Trace("Failed authentication %s %s\n", e.name(), e.what());
+			return -1;
+		}
+		catch(vmime::exception& e)
+		{
+			vmime::Trace("Failed to connect %s\n", e.name());
+			return -1;
+		}
+		catch(std::exception& e)
+		{
+			vmime::Trace("Failed to connect %s\n", e.what());
+			return -1;
+		}
+	}while(1);
+}
+
+int ImapReader::SelectFolder(const std::string& path)
+{
+	int ntry = 0;
+	do
 	{
-		printf("%s", e.what());
-		return -1;
-	}
+		try
+		{
+			impl->SelectFolder(UNI(path));
+			return 0;
+		}
+		catch(exceptions::folder_already_open& e)
+		{
+			return 0;
+		}
+		catch (exceptions::operation_timed_out& e)
+		{
+			vmime::Trace("Timeout SelectFolder %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return -2;
+		}
+		catch (exceptions::illegal_state& e)
+		{
+			vmime::Trace("Illegal_state %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return -2;
+		}
+		catch(vmime::exception& e)
+		{
+			vmime::Trace("Failed to SelectFolder %s\n", e.name());
+			return -1;
+		}
+		catch(std::exception& e)
+		{
+			vmime::Trace("Failed to SelectFolder %s\n", e.what());
+			return -1;
+		}
+	}while(1);
+}
+
+int ImapReader::GetAllFolders(std::vector<std::string> & folders)
+{
+	std::vector<std::wstring> wfolders;
+	impl->EnumFolders(wfolders);
+
+	for(int i = 0; i < wfolders.size(); i++)
+		folders.push_back(UTF(wfolders[i]));
+	return wfolders.size();
 }
 
 
@@ -422,39 +523,93 @@ int ImapReader::GetEmailCount()
 	{
 		return impl->GetEmailCount();
 	}
-	catch(...)
+	catch (exceptions::operation_timed_out& e)
 	{
+		vmime::Trace("TimeOut GetEmailCount %s %s\n", e.name(), e.what());
+		return -2;
+	}
+	catch(vmime::exception& e)
+	{
+		vmime::Trace("Failed to GetEmailCount %s %s\n", e.name(), e.what());
 		return -1;
 	}
-
+	catch(std::exception& e)
+	{
+		vmime::Trace("Failed to GetEmailCount %s\n", e.what());
+		return -1;
+	}
 }
 
 
 std::string ImapReader::GetUid(int i)
 {
-	try
+	int ntry = 0;
+	do
 	{
-		return impl->GetUid(i);
-	}
-	catch(...)
-	{
-		return "";
-	}
+		try
+		{
+			return impl->GetUid(i);
+		}
+		catch (exceptions::operation_timed_out& e)
+		{
+			vmime::Trace("Timeout GetUid %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return "";
+		}
+		catch (exceptions::invalid_response& e)
+		{
+			vmime::Trace("InvalidResp GetUid %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return "";
+		}
+		catch(vmime::exception& e)
+		{
+			vmime::Trace("Failed to GetUid@ %s %s\n", e.name(), e.what());
+			return "";
+		}
+		catch(std::exception& e)
+		{
+			vmime::Trace("Failed to GetUid %s\n", e.what());
+			return "";
+		}
+	}while(1);
 }
 
 
 int ImapReader::GetEmailMessage(int i, std::string& data)
 {
-	try
+	int ntry = 0;
+	do
 	{
-		vmime::wrapper::GuardPtr<vmime::wrapper::cEmailParser> i_Email = impl->FetchEmailAt(i);
-		data = i_Email.Ptr()->GetRawMessage();
-		return 0;
-	}
-	catch(...)
-	{
-		return -1;
-	}
+		try
+		{
+			vmime::wrapper::GuardPtr<vmime::wrapper::cEmailParser> i_Email = impl->FetchEmailAt(i);
+			data = i_Email.Ptr()->GetRawMessage();
+			return 0;
+		}
+		catch (exceptions::operation_timed_out& e)
+		{
+			vmime::Trace("Timeout GetEmailMessage %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return -2;
+		}
+		catch (exceptions::invalid_response& e)
+		{
+			vmime::Trace("InvalidResp GetEmailMessage %d %s\n", ntry, e.name());
+			if(++ntry <= 3) continue;
+			return -2;
+		}
+		catch(vmime::exception& e)
+		{
+			vmime::Trace("Failed to GetEmailMessage %s %s\n", e.name(), e.what());
+			return -1;
+		}
+		catch(std::exception& e)
+		{
+			vmime::Trace("Failed to GetEmailMessage %s\n", e.what());
+			return -1;
+		}
+	}while(1);
 }
 
 void ImapReader::Close()
@@ -465,7 +620,7 @@ void ImapReader::Close()
 	}
 	catch (std::exception& e)
 	{
-		printf("close: %s\n", e.what());
+		vmime::Trace("close: %s\n", e.what());
 	}
 }
 

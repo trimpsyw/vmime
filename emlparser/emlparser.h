@@ -10,6 +10,8 @@
 #define EMLPARSER_API __declspec(dllimport)
 #endif
 
+extern "C" EMLPARSER_API void SetTraceCallback(void (*tTraceCallback)(const char* s8_Trace));
+
 class EMLParserImpl;
 class EMLPARSER_API EMLParser
 {
@@ -40,6 +42,9 @@ public:
 	virtual ~EmailReader(){}
 	virtual int Connect(const std::string& username, const std::string& password) = 0;
 
+	virtual int SelectFolder(const std::string& path) = 0;
+	virtual int GetAllFolders(std::vector<std::string> & folders) = 0;
+
 	virtual int GetEmailCount() = 0;
 
 	virtual std::string GetUid(int i) = 0;
@@ -57,6 +62,9 @@ public:
 	~Pop3Reader();
 
 	int Connect(const std::string& username, const std::string& password);
+
+	int SelectFolder(const std::string& path);
+	int GetAllFolders(std::vector<std::string> & folders);
 
 	int GetEmailCount();
 
@@ -78,6 +86,9 @@ public:
 	~ImapReader();
 
 	int Connect(const std::string& username, const std::string& password);
+
+	int SelectFolder(const std::string& path);
+	int GetAllFolders(std::vector<std::string> & folders);
 
 	int GetEmailCount();
 

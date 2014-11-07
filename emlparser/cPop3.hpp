@@ -27,6 +27,9 @@ public:
 
     void SetAuthData(const wchar_t* u16_User, const wchar_t* u16_Password);
 
+	void    EnumFolders(vector<wstring>& i_FolderList);
+    void    SelectFolder(const wstring s_Path);
+
     int           GetEmailCount();
     cEmailParser* FetchEmailAt(int s32_Index);
 

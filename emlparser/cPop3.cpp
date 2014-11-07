@@ -128,6 +128,27 @@ void cPop3::Connect()
     mi_Inbox->open(net::folder::MODE_READ_WRITE);
 }
 
+void cPop3::EnumFolders(vector<wstring>& i_FolderList)
+{
+	i_FolderList.push_back(L"INBOX");
+}
+ 
+void cPop3::SelectFolder(const wstring s_Path)
+{
+	try
+    {
+		Connect();
+		
+		mi_Inbox = mi_Store->getFolder(vmime::net::folder::path(vmime::net::folder::path::component(UTF(s_Path))));
+		mi_Inbox->open(net::folder::MODE_READ_WRITE);
+	}
+	catch(...)
+	{
+		throw;
+	}
+
+}
+
 int cPop3::GetEmailCount()
 {
     try
