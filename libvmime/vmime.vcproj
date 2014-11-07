@@ -171,6 +171,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="2"
 				AdditionalIncludeDirectories="src/vmime"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
@@ -1115,11 +1116,11 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\vmime\message.hpp"
+				RelativePath=".\src\vmime\net\message.hpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\vmime\net\message.hpp"
+				RelativePath=".\src\vmime\message.hpp"
 				>
 			</File>
 			<File
@@ -1291,10 +1292,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\vmime\path.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\src\vmime\utility\path.cpp"
 				>
 				<FileConfiguration
@@ -1335,11 +1332,15 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\vmime\utility\path.hpp"
+				RelativePath=".\src\vmime\path.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\src\vmime\path.hpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\vmime\utility\path.hpp"
 				>
 			</File>
 			<File

@@ -119,7 +119,7 @@ void IMAPStore::connect()
 	{
 		m_connection->connect();
 	}
-	catch (std::exception&)
+	catch (...)
 	{
 		m_connection = NULL;
 		throw;
