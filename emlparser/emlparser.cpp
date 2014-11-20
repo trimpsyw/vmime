@@ -303,7 +303,7 @@ public:
 };
 
 
-Pop3Reader::Pop3Reader(const std::string& addr, unsigned short port, bool ssl): 
+Pop3Reader::Pop3Reader(const std::string& addr, unsigned short port, bool ssl):
 impl(new Pop3ReaderImpl(UNI(addr).c_str(), 0, ssl?wrapper::cCommon::Secur_SSL:wrapper::cCommon::Secur_Normal, true, IDR_ROOT_CA))
 {
 }
@@ -356,11 +356,14 @@ int Pop3Reader::Connect(const std::string& username, const std::string& password
 }
 
 
-int Pop3Reader::GetEmailCount()
+int Pop3Reader::GetEmailCount(const std::string& uid, std::vector<int>& nums)
 {
 	try
 	{
-		return impl->GetEmailCount();
+		int cnt = impl->GetEmailCount();
+		for(int i = 0; i < cnt; i++)
+			nums.push_back(i);	
+		return cnt;
 	}
 	catch(...)
 	{
@@ -368,7 +371,6 @@ int Pop3Reader::GetEmailCount()
 	}
 
 }
-
 
 std::string Pop3Reader::GetUid(int i)
 {
@@ -517,11 +519,13 @@ int ImapReader::GetAllFolders(std::vector<std::string> & folders)
 }
 
 
-int ImapReader::GetEmailCount()
+int ImapReader::GetEmailCount(const std::string& uid, std::vector<int>& nums)
 {
+	int cnt;
+	std::vector<int> nums2;
 	try
 	{
-		return impl->GetEmailCount();
+		cnt = impl->GetEmailCount();
 	}
 	catch (exceptions::operation_timed_out& e)
 	{
@@ -538,12 +542,31 @@ int ImapReader::GetEmailCount()
 		vmime::Trace("Failed to GetEmailCount %s\n", e.what());
 		return -1;
 	}
+
+	if(uid.empty()) goto end;
+
+	try
+	{
+		nums2 = impl->getMessageNumbersStartingOnUID(uid);
+		for(int i = 0; i < nums2.size(); i++)
+			nums.push_back(nums2[i]-1);
+		return nums.size();
+	}
+	catch(...)
+	{
+	}
+
+end:
+	for(int i = 0; i < cnt; i++)
+		nums.push_back(i);	
+	return cnt;
 }
 
 
 std::string ImapReader::GetUid(int i)
 {
 	int ntry = 0;
+	std::wstring path = impl->GetCurrentFolder();
 	do
 	{
 		try
@@ -553,13 +576,25 @@ std::string ImapReader::GetUid(int i)
 		catch (exceptions::operation_timed_out& e)
 		{
 			vmime::Trace("Timeout GetUid %d %s\n", ntry, e.name());
-			if(++ntry <= 3) continue;
+			if(++ntry <= 3)
+			{
+				Close();
+				impl->Connect();
+				impl->SelectFolder(path);
+				continue;
+			}
 			return "";
 		}
 		catch (exceptions::invalid_response& e)
 		{
 			vmime::Trace("InvalidResp GetUid %d %s\n", ntry, e.name());
-			if(++ntry <= 3) continue;
+			if(++ntry <= 3)
+			{
+				Close();
+				impl->Connect();
+				impl->SelectFolder(path);
+				continue;
+			}
 			return "";
 		}
 		catch(vmime::exception& e)
@@ -579,6 +614,7 @@ std::string ImapReader::GetUid(int i)
 int ImapReader::GetEmailMessage(int i, std::string& data)
 {
 	int ntry = 0;
+	std::wstring path = impl->GetCurrentFolder();
 	do
 	{
 		try
@@ -590,13 +626,26 @@ int ImapReader::GetEmailMessage(int i, std::string& data)
 		catch (exceptions::operation_timed_out& e)
 		{
 			vmime::Trace("Timeout GetEmailMessage %d %s\n", ntry, e.name());
-			if(++ntry <= 3) continue;
+			if(++ntry <= 3) 
+			{
+				Close();
+				impl->Connect();
+				impl->SelectFolder(path);
+
+				continue;
+			}
 			return -2;
 		}
 		catch (exceptions::invalid_response& e)
 		{
 			vmime::Trace("InvalidResp GetEmailMessage %d %s\n", ntry, e.name());
-			if(++ntry <= 3) continue;
+			if(++ntry <= 3)
+			{
+				Close();
+				impl->Connect();
+				impl->SelectFolder(path);
+				continue;
+			}
 			return -2;
 		}
 		catch(vmime::exception& e)

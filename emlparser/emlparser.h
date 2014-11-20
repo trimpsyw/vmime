@@ -45,7 +45,7 @@ public:
 	virtual int SelectFolder(const std::string& path) = 0;
 	virtual int GetAllFolders(std::vector<std::string> & folders) = 0;
 
-	virtual int GetEmailCount() = 0;
+	virtual int GetEmailCount(const std::string& uid = std::string(), std::vector<int>& nums = std::vector<int>()) = 0;
 
 	virtual std::string GetUid(int i) = 0;
 
@@ -66,7 +66,7 @@ public:
 	int SelectFolder(const std::string& path);
 	int GetAllFolders(std::vector<std::string> & folders);
 
-	int GetEmailCount();
+	int GetEmailCount(const std::string& uid = std::string(), std::vector<int>& nums = std::vector<int>());
 
 	std::string GetUid(int i);
 
@@ -90,7 +90,7 @@ public:
 	int SelectFolder(const std::string& path);
 	int GetAllFolders(std::vector<std::string> & folders);
 
-	int GetEmailCount();
+	int GetEmailCount(const std::string& uid = std::string(), std::vector<int>& nums = std::vector<int>());
 
 	std::string GetUid(int i);
 

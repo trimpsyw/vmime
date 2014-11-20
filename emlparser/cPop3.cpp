@@ -171,7 +171,7 @@ string cPop3::GetUid(int s32_Index)
         Connect();
 
         if (s32_Index < 0 || s32_Index >= mi_Inbox->getMessageCount())
-            return NULL;
+            return "";
             
         // Email index on the server is one-based!
         ref<net::message> i_Msg = mi_Inbox->getMessage(s32_Index +1);

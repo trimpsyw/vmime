@@ -64,6 +64,9 @@ void cImap::Close()
     catch (...)
     {
         // http://stackoverflow.com/questions/21346400/destructors-not-executed-no-stack-unwinding-when-exception-is-thrown
+		mi_Folder  = NULL;
+        mi_Store   = NULL; // destructor disconnects the last connection from the server
+        mi_Session = NULL;
         throw; 
     }
 }
@@ -201,6 +204,23 @@ int cImap::GetEmailCount()
     }
 }
 
+vector <int> cImap::getMessageNumbersStartingOnUID(const string& uid)
+{
+	try
+	{
+		if (!mi_Folder)
+            SelectFolder(L"INBOX");
+
+		return  mi_Folder->getMessageNumbersStartingOnUID(vmime::net::message::uid(uid));
+
+	}
+	catch(...)
+	{
+		throw;
+	}
+}
+
+
 string	cImap::GetUid(int s32_Index)
 {
 	try
@@ -209,15 +229,12 @@ string	cImap::GetUid(int s32_Index)
             SelectFolder(L"INBOX");
 
         if (s32_Index < 0 || s32_Index >= mi_Folder->getMessageCount())
-            return NULL;
+            return "";
             
         // Email index on the server is one-based!
         ref<net::message> i_Msg = mi_Folder->getMessage(s32_Index +1);
 
-        mi_Folder->fetchMessage(i_Msg, net::folder::FETCH_FULL_HEADER | 
-                                       net::folder::FETCH_FLAGS | 
-                                       net::folder::FETCH_SIZE  | 
-                                       net::folder::FETCH_UID);
+        mi_Folder->fetchMessage(i_Msg, net::folder::FETCH_UID);
 
 		return i_Msg->getUID().operator vmime::string();
 	}

@@ -31,6 +31,8 @@ public:
     void    SelectFolder(const wstring s_Path);
     wstring GetCurrentFolder();
 
+	vector <int> getMessageNumbersStartingOnUID(const string& uid);
+
     int           GetEmailCount();
     cEmailParser* FetchEmailAt(int s32_Index);
 	string		  GetUid(int s32_Index);
