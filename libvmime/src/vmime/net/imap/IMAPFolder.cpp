@@ -778,7 +778,7 @@ void IMAPFolder::fetchMessages(std::vector <ref <message> >& msg, const int opti
 	// Send the request
 	const string command = IMAPUtils::buildFetchRequest
 		(m_connection, messageSet::byNumber(list), options);
-
+	
 	m_connection->send(true, command, true);
 
 	// Get the response
@@ -1349,7 +1349,7 @@ std::vector <int> IMAPFolder::getMessageNumbersStartingOnUID(const message::uid&
 	std::ostringstream command;
 	command.imbue(std::locale::classic());
 
-	command << "SEARCH UID " << uid << ":*";
+	command << "SEARCH (UID " << uid << ":*)";
 
 	// Send the request
 	m_connection->send(true, command.str(), true);
